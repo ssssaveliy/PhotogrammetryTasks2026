@@ -2,6 +2,9 @@
 
 #include <opencv2/core.hpp>
 
+#include <functional>
+#include <vector>
+
 namespace phg {
 
     cv::Mat stitchPanorama(

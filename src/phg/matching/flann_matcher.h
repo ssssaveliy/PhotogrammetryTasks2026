@@ -3,6 +3,8 @@
 #include "descriptor_matcher.h"
 #include <opencv2/flann/miniflann.hpp>
 
+#include <memory>
+
 namespace phg {
 
     struct FlannMatcher : DescriptorMatcher {
@@ -14,6 +16,8 @@ namespace phg {
         void knnMatch(const cv::Mat &query_desc, std::vector<std::vector<cv::DMatch>> &matches, int k) const override;
 
     private:
+
+        cv::Mat train_desc_;
 
         std::shared_ptr<cv::flann::IndexParams> index_params;
         std::shared_ptr<cv::flann::SearchParams> search_params;

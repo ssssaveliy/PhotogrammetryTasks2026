@@ -2,6 +2,8 @@
 
 #include <opencv2/core.hpp>
 
+#include <vector>
+
 namespace phg {
 
     cv::Mat findHomography(const std::vector<cv::Point2f> &points_lhs,
