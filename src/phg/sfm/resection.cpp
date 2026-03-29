@@ -1,7 +1,10 @@
 #include "resection.h"
 
 #include <Eigen/SVD>
+#include <cmath>
 #include <iostream>
+#include <stdexcept>
+#include <vector>
 #include "sfm_utils.h"
 #include "defines.h"
 
@@ -46,98 +49,167 @@ namespace {
         return result;
     }
 
+    cv::Vec2d projectPixel(const phg::Calibration &calib, const cv::Matx34d &P, const cv::Vec3d &X)
+    {
+        const cv::Vec4d Xh(X[0], X[1], X[2], 1.0);
+        const cv::Vec3d cam = P * Xh;
+        if (cam[2] == 0.0) {
+            throw std::runtime_error("projectPixel: point at infinity");
+        }
+        const cv::Vec3d pxh = calib.project(cam);
+        if (pxh[2] == 0.0) {
+            throw std::runtime_error("projectPixel: invalid homogeneous pixel");
+        }
+        return cv::Vec2d(pxh[0] / pxh[2], pxh[1] / pxh[2]);
+    }
+
     // (см. Hartley & Zisserman p.178)
     cv::Matx34d estimateCameraMatrixDLT(const cv::Vec3d *Xs, const cv::Vec3d *xs, int count)
     {
-        throw std::runtime_error("not implemented yet");
-//        using mat = Eigen::MatrixXd;
-//        using vec = Eigen::VectorXd;
-//
-//        mat A(TODO);
-//
-//        for (int i = 0; i < count; ++i) {
-//
-//            double x = xs[i][0];
-//            double y = xs[i][1];
-//            double w = xs[i][2];
-//
-//            double X = Xs[i][0];
-//            double Y = Xs[i][1];
-//            double Z = Xs[i][2];
-//            double W = 1.0;
-//
-//            TODO
-//        }
-//
-//        matrix34d result;
-//          TODO
-//
-//        return canonicalizeP(result);
+        if (count < 6) {
+            throw std::runtime_error("estimateCameraMatrixDLT: count < 6");
+        }
+
+        using mat = Eigen::MatrixXd;
+        using vec = Eigen::VectorXd;
+
+        mat A(2 * count, 12);
+
+        for (int i = 0; i < count; ++i) {
+            const double x = xs[i][0];
+            const double y = xs[i][1];
+            const double w = xs[i][2];
+
+            const double X = Xs[i][0];
+            const double Y = Xs[i][1];
+            const double Z = Xs[i][2];
+            const double W = 1.0;
+
+            A(2 * i + 0, 0) = 0.0;
+            A(2 * i + 0, 1) = 0.0;
+            A(2 * i + 0, 2) = 0.0;
+            A(2 * i + 0, 3) = 0.0;
+            A(2 * i + 0, 4) = -w * X;
+            A(2 * i + 0, 5) = -w * Y;
+            A(2 * i + 0, 6) = -w * Z;
+            A(2 * i + 0, 7) = -w * W;
+            A(2 * i + 0, 8) = y * X;
+            A(2 * i + 0, 9) = y * Y;
+            A(2 * i + 0, 10) = y * Z;
+            A(2 * i + 0, 11) = y * W;
+
+            A(2 * i + 1, 0) = w * X;
+            A(2 * i + 1, 1) = w * Y;
+            A(2 * i + 1, 2) = w * Z;
+            A(2 * i + 1, 3) = w * W;
+            A(2 * i + 1, 4) = 0.0;
+            A(2 * i + 1, 5) = 0.0;
+            A(2 * i + 1, 6) = 0.0;
+            A(2 * i + 1, 7) = 0.0;
+            A(2 * i + 1, 8) = -x * X;
+            A(2 * i + 1, 9) = -x * Y;
+            A(2 * i + 1, 10) = -x * Z;
+            A(2 * i + 1, 11) = -x * W;
+        }
+
+        Eigen::JacobiSVD<mat> svd(A, Eigen::ComputeFullV);
+        vec p = svd.matrixV().col(11);
+
+        matrix34d result;
+        for (int i = 0; i < 12; ++i) {
+            result(i / 4, i % 4) = p[i];
+        }
+
+        return canonicalizeP(result);
     }
 
 
     // По трехмерным точкам и их проекциям на изображении определяем положение камеры
     cv::Matx34d estimateCameraMatrixRANSAC(const phg::Calibration &calib, const std::vector<cv::Vec3d> &X, const std::vector<cv::Vec2d> &x)
     {
-        throw std::runtime_error("not implemented yet");
-//        if (X.size() != x.size()) {
-//            throw std::runtime_error("estimateCameraMatrixRANSAC: X.size() != x.size()");
-//        }
-//
-//        const int n_points = X.size();
-//
-//        // https://en.wikipedia.org/wiki/Random_sample_consensus#Parameters
-//        // будет отличаться от случая с гомографией
-//        const int n_trials = TODO;
-//
-//        const double threshold_px = 3;
-//
-//        const int n_samples = TODO;
-//        uint64_t seed = 1;
-//
-//        int best_support = 0;
-//        cv::Matx34d best_P;
-//
-//        std::vector<int> sample;
-//        for (int i_trial = 0; i_trial < n_trials; ++i_trial) {
-//            phg::randomSample(sample, n_points, n_samples, &seed);
-//
-//            cv::Vec3d ms0[n_samples];
-//            cv::Vec3d ms1[n_samples];
-//            for (int i = 0; i < n_samples; ++i) {
-//                ms0[i] = TODO;
-//                ms1[i] = TODO;
-//            }
-//
-//            cv::Matx34d P = estimateCameraMatrixDLT(ms0, ms1, n_samples);
-//
-//            int support = 0;
-//            for (int i = 0; i < n_points; ++i) {
-//                cv::Vec2d px = TODO спроецировать 3Д точку в пиксель с использованием P и calib;
-//                if (cv::norm(px - x[i]) < threshold_px) {
-//                    ++support;
-//                }
-//            }
-//
-//            if (support > best_support) {
-//                best_support = support;
-//                best_P = P;
-//
-//                std::cout << "estimateCameraMatrixRANSAC : support: " << best_support << "/" << n_points << std::endl;
-//
-//                if (best_support == n_points) {
-//                    break;
-//                }
-//            }
-//        }
-//
-//        std::cout << "estimateCameraMatrixRANSAC : best support: " << best_support << "/" << n_points << std::endl;
-//
-//        if (best_support == 0) {
-//            throw std::runtime_error("estimateCameraMatrixRANSAC : failed to estimate camera matrix");
-//        }
-//
-//        return best_P;
+        if (X.size() != x.size()) {
+            throw std::runtime_error("estimateCameraMatrixRANSAC: X.size() != x.size()");
+        }
+        if (X.size() < 6) {
+            throw std::runtime_error("estimateCameraMatrixRANSAC: need at least 6 correspondences");
+        }
+
+        const int n_points = static_cast<int>(X.size());
+
+        // https://en.wikipedia.org/wiki/Random_sample_consensus#Parameters
+        // будет отличаться от случая с гомографией
+        const int n_trials = std::max(1000, 20 * n_points);
+
+        const double threshold_px = 3;
+
+        const int n_samples = 6;
+        uint64_t seed = 1;
+
+        int best_support = 0;
+        cv::Matx34d best_P = cv::Matx34d::eye();
+
+        std::vector<int> sample;
+        for (int i_trial = 0; i_trial < n_trials; ++i_trial) {
+            phg::randomSample(sample, n_points, n_samples, &seed);
+
+            cv::Vec3d ms0[n_samples];
+            cv::Vec3d ms1[n_samples];
+            for (int i = 0; i < n_samples; ++i) {
+                ms0[i] = X[sample[i]];
+                ms1[i] = calib.unproject(x[sample[i]]);
+            }
+
+            cv::Matx34d P = estimateCameraMatrixDLT(ms0, ms1, n_samples);
+
+            int support = 0;
+            for (int i = 0; i < n_points; ++i) {
+                try {
+                    cv::Vec2d px = projectPixel(calib, P, X[i]);
+                    if (cv::norm(px - x[i]) < threshold_px) {
+                        ++support;
+                    }
+                } catch (const std::exception &) {
+                }
+            }
+
+            if (support > best_support) {
+                best_support = support;
+                best_P = P;
+
+                std::cout << "estimateCameraMatrixRANSAC : support: " << best_support << "/" << n_points << std::endl;
+
+                if (best_support == n_points) {
+                    break;
+                }
+            }
+        }
+
+        std::cout << "estimateCameraMatrixRANSAC : best support: " << best_support << "/" << n_points << std::endl;
+
+        if (best_support < 6) {
+            throw std::runtime_error("estimateCameraMatrixRANSAC : failed to estimate camera matrix");
+        }
+
+        std::vector<cv::Vec3d> inlierX;
+        std::vector<cv::Vec3d> inlierx;
+        inlierX.reserve(best_support);
+        inlierx.reserve(best_support);
+        for (int i = 0; i < n_points; ++i) {
+            try {
+                cv::Vec2d px = projectPixel(calib, best_P, X[i]);
+                if (cv::norm(px - x[i]) < threshold_px) {
+                    inlierX.push_back(X[i]);
+                    inlierx.push_back(calib.unproject(x[i]));
+                }
+            } catch (const std::exception &) {
+            }
+        }
+
+        if (static_cast<int>(inlierX.size()) >= 6) {
+            best_P = estimateCameraMatrixDLT(inlierX.data(), inlierx.data(), static_cast<int>(inlierX.size()));
+        }
+
+        return best_P;
     }
 
 
