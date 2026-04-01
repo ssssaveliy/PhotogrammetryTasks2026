@@ -44,6 +44,11 @@ find_package(Eigen3 REQUIRED)
 # 8) запомните папку куда была проведена установка Eigen3 - она имеет вид .../eigen-3.3.9/install_dir
 # 9) Добавьте в File->Settings->CMake options: -DEigen3_DIR=<ПОПРАВЬТЕ ЭТОТ ПУТЬ>/eigen-3.3.9/install_dir/share/eigen3/cmake
 
+if(WIN32)
+  find_package(gflags CONFIG REQUIRED)
+  find_package(glog CONFIG REQUIRED)
+endif()
+
 find_package(Ceres 2.2.0 REQUIRED)
 #      Linux: выполните скрипт .github/scripts/linux/install_ceres_solver.sh
 #      Mac: выполните скрипт .github/scripts/macos/install_ceres_solver.sh
