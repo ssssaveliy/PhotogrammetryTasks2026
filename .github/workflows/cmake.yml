@@ -69,11 +69,14 @@ jobs:
         shell: pwsh
         run: |
           $OpenCV_DIR = Get-Content .deps/opencv_dir.txt
+          $env:VCPKG_INSTALLATION_ROOT = ""
           cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
-            -DOpenCV_DIR="$OpenCV_DIR" `
-            -DEigen3_DIR="C:\eigen-3.4.0\share\eigen3\cmake" `
-            -DCMAKE_PREFIX_PATH="C:\ceres-solver220;C:\vcpkg\installed\x64-windows" `
-            -DCMAKE_CONFIGURATION_TYPES="Debug;RelWithDebInfo"
+              -DOpenCV_DIR="$OpenCV_DIR" `
+              -DEigen3_DIR="C:\eigen-3.4.0\share\eigen3\cmake" `
+              -DCMAKE_PREFIX_PATH="C:\ceres-solver220" `
+              -DCMAKE_TOOLCHAIN_FILE="C:\vcpkg\scripts\buildsystems\vcpkg.cmake" `
+              -DVCPKG_TARGET_TRIPLET="x64-windows" `
+              -DCMAKE_CONFIGURATION_TYPES="Debug;RelWithDebInfo"
 
       - name: Build (any OS)
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
