@@ -10,7 +10,7 @@
 - [Задание 2:](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2026/tree/task02) Сопоставление ключевых точек и подсчет гомографии.
 - [Задание 3:](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2026/tree/task03) SFM. Оценка взаимной ориентации и положения камер, построение облака точек.
 - [Задание 4:](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2026/tree/task04) SFM. Ceres Solver и Bundle Adjustment.
-- Задание 5: MVS. Depth Maps. Patch Match.
+- [Задание 5:](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2026/tree/task05) MVS. Depth Maps. Patch Match.
 - Задание 6: MVS. Build model. Triangulation Delaunay + Graph Min-Cut.
 
 Другое:
